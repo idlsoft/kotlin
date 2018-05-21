@@ -90,6 +90,18 @@ expect fun Char.isLowSurrogate(): Boolean
 
 // From string.kt
 
+
+/**
+ * Converts the characters in the specified array to a string.
+ */
+public expect fun String(chars: CharArray): String
+
+/**
+ * Converts the characters from a portion of the specified array to a string.
+ */
+public expect fun String(chars: CharArray, offset: Int, length: Int): String
+
+
 internal expect fun String.nativeIndexOf(str: String, fromIndex: Int): Int
 internal expect fun String.nativeLastIndexOf(str: String, fromIndex: Int): Int
 
