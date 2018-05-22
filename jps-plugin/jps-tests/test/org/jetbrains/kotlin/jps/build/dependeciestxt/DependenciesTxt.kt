@@ -28,6 +28,7 @@ import kotlin.reflect.full.memberProperties
  * See [README.md] for more details.
  */
 data class DependenciesTxt(
+    val file: File,
     val fileName: String,
     val modules: List<Module>,
     val dependencies: List<Dependency>
@@ -148,6 +149,7 @@ class DependenciesTxtBuilder {
         // module.build() requires built dependencies
         val dependencies = dependencies.map { it.build() }
         return DependenciesTxt(
+            file,
             fileTitle,
             modules.values.mapIndexed { index, moduleRef -> moduleRef.build(index) },
             dependencies
