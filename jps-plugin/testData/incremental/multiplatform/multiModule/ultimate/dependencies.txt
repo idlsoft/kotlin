@@ -1,122 +1,97 @@
 //
-// Let we have this depend module groups:
+//        RA                  RB
+//         rAJvm    <-------    rBJvm
+//         rAJs     <-------    rBJs
 //
-//  RB -> RA
-//  A -> RA
-//  B -> RB
-//  B -> A
-//  R -> B (and R -> A, transitively)
+//            ^                   ^
+//            |                   |
+//        A
+//         aCommon              B
+//          aCommonClient        bCommon      R
+//            aJvmClient  <------ bJvm   <---  rJvm
+//            aJsClient   <------ bJs    <---  rJs
+//          aCommonServer
+//            aJvmServer
+//            aJsServer
 //
-// RA and RB is regular module groups.
-// Each group contains 2 jvm and 2 js regular modules (server and client).
-//
-// A and B is multiplatform module groups. This cases are covered:
-// - one platform module provide actual definitions for two common modules
-// - one common module has actual declarations for 2 jvm and 2 js platforms (server and client)
-// Therefore each module group itself contains 3 module subgroups: common, jvm and js modules.
-// Each of which, in turn, contains common, client and server modules.
-//
-// R is regular module depends on B (and on A, transitively)
+//  - `rA*`, `rB*` regular dependent module groups - for testing `common-on-platform -> regular` dependency
+//  - `aCommon*`, `bCommon` - common modules
+//  - `aCommonClient`, `aCommonServer` - for testings `common -> common` dependency
+//  - aJvmClient/aJvmServer, aJsClient/aJsServer - for testing two implementation on same platform
+//  - `b*` - for testings `common-on-platform -> common-on-platform` dependency
+//  - `r*` - regular modules for testings `regular -> common-on-platform` dependency
 //
 
 //////  RA //////
 
-raJvmClient [jvm, edit]
-raJvmServer [jvm]
-raJsClient [js, edit]
-raJsServer [js]
+raJvm [jvm, edit]
+raJs [js, edit]
 
 ////// RB //////
 
-rbJvmClient [jvm]
-rbJvmClient -> raJvmClient [compile, exported]
+rbJvm [jvm]
+rbJvm -> raJvm [compile]
 
-rbJvmServer [jvm]
-rbJvmServer -> raJvmServer [compile, exported]
-
-rbJsClient [js]
-rbJsClient -> raJsClient [compile, exported]
-
-rbJsServer [js]
-rbJsServer -> raJsServer [compile, exported]
+rbJs [js]
+rbJs -> raJs [compile]
 
 ////// A //////
 
 aCommon [common, edit, editExpectActual]
 
 aCommonClient [common]
-aCommonClient -> aCommon [compile, exported]
+aCommonClient -> aCommon [compile]
 
 aCommonServer [common]
-aCommonServer -> aCommon [compile, exported]
+aCommonServer -> aCommon [compile]
 
 aJvmClient [jvm, edit, editJvm]
 aJvmClient -> aCommon [expectedBy]
 aJvmClient -> aCommonClient [expectedBy]
-aJvmClient -> raJvmClient [compile, exported]
+aJvmClient -> raJvm [compile]
 
 aJvmServer [jvm]
 aJvmServer -> aCommon [expectedBy]
 aJvmServer -> aCommonServer [expectedBy]
-aJvmServer -> raJvmServer [compile, exported]
+aJvmServer -> raJvm [compile]
 
 aJsClient [js, edit]
 aJsClient -> aCommon [expectedBy]
 aJsClient -> aCommonClient [expectedBy]
-aJsClient -> raJsClient [compile, exported]
+aJsClient -> raJs [compile]
 
 aJsServer [js]
 aJsServer -> aCommon [expectedBy]
 aJsServer -> aCommonServer [expectedBy]
-aJsServer -> raJsServer [compile, exported]
+aJsServer -> raJs [compile]
 
 ////// B //////
 
 bCommon [common, editExpectActual]
-bCommon -> aCommon [compile, exported]
+bCommon -> aCommon [compile]
 
-bCommonClient [common, edit, editJvm]
-bCommonClient -> bCommon [compile, exported]
-bCommonClient -> aCommonClient [compile, exported]
+bJvm [jvm]
+bJvm -> bCommon [expectedBy]
+bJvm -> aJvmClient [compile]
+bJvm -> raJvm [compile]
+bJvm -> rbJvm [compile]
 
-bCommonServer [common]
-bCommonServer -> bCommon [compile, exported]
-bCommonServer -> aCommonServer [compile, exported]
-
-bJvmClient [jvm]
-bJvmClient -> bCommon [expectedBy]
-bJvmClient -> bCommonClient [expectedBy]
-bJvmClient -> aJvmClient [compile, exported]
-bJvmClient -> rbJvmClient [compile, exported]
-
-bJvmServer [jvm]
-bJvmServer -> bCommon [expectedBy]
-bJvmServer -> bCommonServer [expectedBy]
-bJvmServer -> aJvmServer [compile, exported]
-bJvmServer -> rbJvmServer [compile, exported]
-
-bJsClient [js]
-bJsClient -> bCommon [expectedBy]
-bJsClient -> bCommonClient [expectedBy]
-bJsClient -> aJsClient [compile, exported]
-bJsClient -> rbJsClient [compile, exported]
-
-bJsServer [js]
-bJsServer -> bCommon [expectedBy]
-bJsServer -> bCommonServer [expectedBy]
-bJsServer -> aJsServer [compile, exported]
-bJsServer -> rbJsServer [compile, exported]
+bJs [js]
+bJs -> bCommon [expectedBy]
+bJs -> aJsClient [compile]
+bJs -> raJs [compile]
+bJs -> rbJs [compile]
 
 ////// R //////
 
-rJvmClient [jvm, edit]
-rJvmClient -> bJvmClient [compile, exported]
+rJvm [jvm, edit]
+rJvm -> raJvm [compile]
+rJvm -> rbJvm [compile]
+rJvm -> bJvm [compile]
+rJvm -> aJvmClient [compile]
 
-rJvmServer [jvm]
-rJvmServer -> bJvmServer [compile, exported]
-
-rJsClient [js, edit]
-rJsClient -> bJsClient [compile, exported]
-
-rJsServer [js]
-rJsServer -> bJsServer [compile, exported]
+rJs [js, edit]
+rJs -> raJs [compile]
+rJs -> rbJs [compile]
+rJs -> bJs [compile]
+rJs -> aJsClient [compile]

@@ -102,6 +102,8 @@ class DependenciesTxtBuilder {
         var defined: Boolean = false
         var actual: DependenciesTxt.Module = DependenciesTxt.Module(name)
 
+        override fun toString() = actual.name
+
         fun build(index: Int): DependenciesTxt.Module {
             val result = actual
             result.index = index
@@ -124,7 +126,10 @@ class DependenciesTxtBuilder {
         val expectedBy: Boolean,
         val exported: Boolean
     ) {
-        fun build() = DependenciesTxt.Dependency(from.actual, to.actual, scope, expectedBy, exported)
+        fun build(): DependenciesTxt.Dependency {
+            if (expectedBy) check(to.actual.isCommonModule) { "$this: ${to.actual} is not common module" }
+            return DependenciesTxt.Dependency(from.actual, to.actual, scope, expectedBy, exported)
+        }
     }
 
     fun readFile(file: File, fileTitle: String = file.toString()): DependenciesTxt {

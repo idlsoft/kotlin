@@ -23,16 +23,16 @@ Building rJs
 Exit code: NOTHING_DONE
 ------------------------------------------
 Building raJvm
-Exit code: NOTHING_DONE
+Compiling files:
+  raJvm/src/serviceRaJvmNewImpl.kt
+End of files
+Exit code: OK
 ------------------------------------------
 Building aJvmServer
 Exit code: NOTHING_DONE
 ------------------------------------------
 Building aJvmClient
-Compiling files:
-  aJvmClient/src/serviceAJvmClientNewImpl.kt
-End of files
-Exit code: OK
+Exit code: NOTHING_DONE
 ------------------------------------------
 Building rbJvm
 Exit code: NOTHING_DONE
@@ -69,20 +69,20 @@ Building rJs
 Exit code: NOTHING_DONE
 ------------------------------------------
 Building raJvm
-Exit code: NOTHING_DONE
+Cleaning output files:
+  out/production/raJvm/META-INF/raJvm.kotlin_module
+  out/production/raJvm/ServiceRaJvmNewImplKt.class
+End of files
+Compiling files:
+  raJvm/src/serviceRaJvmNewImpl.kt
+End of files
+Exit code: OK
 ------------------------------------------
 Building aJvmServer
 Exit code: NOTHING_DONE
 ------------------------------------------
 Building aJvmClient
-Cleaning output files:
-  out/production/aJvmClient/META-INF/aJvmClient.kotlin_module
-  out/production/aJvmClient/ServiceAJvmClientNewImplKt.class
-End of files
-Compiling files:
-  aJvmClient/src/serviceAJvmClientNewImpl.kt
-End of files
-Exit code: OK
+Exit code: NOTHING_DONE
 ------------------------------------------
 Building rbJvm
 Exit code: NOTHING_DONE
@@ -118,20 +118,20 @@ Exit code: NOTHING_DONE
 Building rJs
 Exit code: NOTHING_DONE
 ------------------------------------------
+Cleaning output files:
+  out/production/raJvm/META-INF/raJvm.kotlin_module
+  out/production/raJvm/ServiceRaJvmNewImplKt.class
+End of files
 Building raJvm
-Exit code: NOTHING_DONE
+Compiling files:
+End of files
+Exit code: OK
 ------------------------------------------
 Building aJvmServer
 Exit code: NOTHING_DONE
 ------------------------------------------
-Cleaning output files:
-  out/production/aJvmClient/META-INF/aJvmClient.kotlin_module
-  out/production/aJvmClient/ServiceAJvmClientNewImplKt.class
-End of files
 Building aJvmClient
-Compiling files:
-End of files
-Exit code: OK
+Exit code: NOTHING_DONE
 ------------------------------------------
 Building rbJvm
 Exit code: NOTHING_DONE

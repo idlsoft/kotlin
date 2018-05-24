@@ -29,10 +29,7 @@ Building aJvmServer
 Exit code: NOTHING_DONE
 ------------------------------------------
 Building aJvmClient
-Compiling files:
-  aJvmClient/src/serviceAJvmClientNewImpl.kt
-End of files
-Exit code: OK
+Exit code: NOTHING_DONE
 ------------------------------------------
 Building rbJvm
 Exit code: NOTHING_DONE
@@ -41,7 +38,10 @@ Building bJvm
 Exit code: NOTHING_DONE
 ------------------------------------------
 Building rJvm
-Exit code: NOTHING_DONE
+Compiling files:
+  rJvm/src/serviceRJvmNewImpl.kt
+End of files
+Exit code: OK
 ------------------------------------------
 
 ================ Step #2 edit new service =================
@@ -75,14 +75,7 @@ Building aJvmServer
 Exit code: NOTHING_DONE
 ------------------------------------------
 Building aJvmClient
-Cleaning output files:
-  out/production/aJvmClient/META-INF/aJvmClient.kotlin_module
-  out/production/aJvmClient/ServiceAJvmClientNewImplKt.class
-End of files
-Compiling files:
-  aJvmClient/src/serviceAJvmClientNewImpl.kt
-End of files
-Exit code: OK
+Exit code: NOTHING_DONE
 ------------------------------------------
 Building rbJvm
 Exit code: NOTHING_DONE
@@ -91,7 +84,14 @@ Building bJvm
 Exit code: NOTHING_DONE
 ------------------------------------------
 Building rJvm
-Exit code: NOTHING_DONE
+Cleaning output files:
+  out/production/rJvm/META-INF/rJvm.kotlin_module
+  out/production/rJvm/ServiceRJvmNewImplKt.class
+End of files
+Compiling files:
+  rJvm/src/serviceRJvmNewImpl.kt
+End of files
+Exit code: OK
 ------------------------------------------
 
 ================ Step #3 delete new service =================
@@ -124,14 +124,8 @@ Exit code: NOTHING_DONE
 Building aJvmServer
 Exit code: NOTHING_DONE
 ------------------------------------------
-Cleaning output files:
-  out/production/aJvmClient/META-INF/aJvmClient.kotlin_module
-  out/production/aJvmClient/ServiceAJvmClientNewImplKt.class
-End of files
 Building aJvmClient
-Compiling files:
-End of files
-Exit code: OK
+Exit code: NOTHING_DONE
 ------------------------------------------
 Building rbJvm
 Exit code: NOTHING_DONE
@@ -139,6 +133,12 @@ Exit code: NOTHING_DONE
 Building bJvm
 Exit code: NOTHING_DONE
 ------------------------------------------
+Cleaning output files:
+  out/production/rJvm/META-INF/rJvm.kotlin_module
+  out/production/rJvm/ServiceRJvmNewImplKt.class
+End of files
 Building rJvm
-Exit code: NOTHING_DONE
+Compiling files:
+End of files
+Exit code: OK
 ------------------------------------------
