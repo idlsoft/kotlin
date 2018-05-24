@@ -21,20 +21,16 @@ File contains declarations of modules and dependencies:
 Referring to undefined module is allowed (`jvm` module will be created at this case).
 This modules can be defined after reference. Several declarations for same module is not allowed.
 
-Supported module attributes and flags:
+Supported module flags:
   - `common`
   - `jvm` (default)
   - `js`
+  - `edit`, `editJvm`, `editExcpetActual` - see jps-plugin/testData/incremental/multiplatform/multiModule/README.md
     
-Supported dependency  attributes and flags:
+Supported dependency flags:
   - `compile` (default)
   - `test`
   - `runtime`
   - `provided`
   - `expectedBy`
   - `exproted`
-
-## Parser
-
-Parser generated using [ANTLR](http://www.antlr.org/).
-Please follow [this instruction](http://blog.dgunia.de/2017/10/26/creating-and-testing-an-antlr-parser-with-intellij-idea-or-android-studio/) for editing `DependenciesTxt.g4` and generating parser.

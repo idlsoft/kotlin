@@ -5,8 +5,6 @@
 
 package org.jetbrains.kotlin.jps.build.dependeciestxt
 
-import org.antlr.v4.runtime.CharStreams
-import org.antlr.v4.runtime.CommonTokenStream
 import org.jetbrains.jps.model.java.JpsJavaDependencyScope
 import org.jetbrains.jps.model.module.JpsModule
 import org.jetbrains.kotlin.cli.common.arguments.K2JSCompilerArguments
@@ -15,9 +13,6 @@ import org.jetbrains.kotlin.cli.common.arguments.K2MetadataCompilerArguments
 import org.jetbrains.kotlin.config.CompilerSettings
 import org.jetbrains.kotlin.config.KotlinFacetSettings
 import org.jetbrains.kotlin.config.TargetPlatformKind
-import org.jetbrains.kotlin.jps.build.dependeciestxt.generated.DependenciesTxtLexer
-import org.jetbrains.kotlin.jps.build.dependeciestxt.generated.DependenciesTxtParser
-import org.jetbrains.kotlin.jps.build.dependeciestxt.generated.DependenciesTxtParser.*
 import java.io.File
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.findAnnotation
@@ -39,7 +34,7 @@ data class DependenciesTxt(
         var index: Int = -1
 
         val indexedName
-            get() = "${index/10}${index%10}_$name"
+            get() = "${index / 10}${index % 10}_$name"
 
         /**
          * Facet should not be created for old tests
@@ -98,7 +93,7 @@ data class DependenciesTxt(
 
 class DependenciesTxtBuilder {
     val modules = mutableMapOf<String, ModuleRef>()
-    val dependencies = mutableListOf<DependencyBuilder>()
+    private val dependencies = mutableListOf<DependencyBuilder>()
 
     /**
      * Reference to module which can be defined later
@@ -133,17 +128,8 @@ class DependenciesTxtBuilder {
     }
 
     fun readFile(file: File, fileTitle: String = file.toString()): DependenciesTxt {
-        val lexer = DependenciesTxtLexer(CharStreams.fromPath(file.toPath()))
-        val parser = DependenciesTxtParser(CommonTokenStream(lexer))
-
-        parser.file().def().forEach { def ->
-            val moduleDef = def.moduleDef()
-            val dependencyDef = def.dependencyDef()
-
-            when {
-                moduleDef != null -> newModule(moduleDef)
-                dependencyDef != null -> newDependency(dependencyDef)
-            }
+        file.forEachLine { line ->
+            parseDeclaration(line)
         }
 
         // module.build() requires built dependencies
@@ -156,14 +142,53 @@ class DependenciesTxtBuilder {
         )
     }
 
+    private fun parseDeclaration(line: String) = doParseDeclaration(removeComments(line))
+
+    private fun removeComments(line: String) = line.split("//", limit = 2)[0].trim()
+
+    private fun doParseDeclaration(line: String) {
+        when {
+            line.isEmpty() -> Unit // skip empty lines
+            line.contains("->") -> {
+                val (from, rest) = line.split("->", limit = 2)
+                if (rest.isBlank()) {
+                    // `name -> ` - module
+                    newModule(ValueWithFlags(from))
+                } else {
+                    val (to, flags) = parseValueWithFlags(rest.trim())
+                    newDependency(from.trim(), to.trim(), flags) // `from -> to [flag1, flag2, ...]` - dependency
+                }
+            }
+            else -> newModule(parseValueWithFlags(line)) // `name [flag1, flag2, ...]` - module
+        }
+    }
+
+    /**
+     * `value [flag1, flag2, ...]`
+     */
+    private fun parseValueWithFlags(str: String): ValueWithFlags {
+        val parts = str.split("[", limit = 2)
+        return if (parts.size > 1) {
+            val (value, flags) = parts
+            ValueWithFlags(
+                value = value.trim(),
+                flags = flags.trim()
+                    .removeSuffix("]")
+                    .split(",")
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .toSet()
+            )
+        } else ValueWithFlags(str)
+    }
+
+    data class ValueWithFlags(val value: String, val flags: Set<String> = setOf())
+
     private fun moduleRef(name: String) =
         modules.getOrPut(name) { ModuleRef(name) }
 
-    private fun moduleRef(refNode: ModuleRefContext) =
-        moduleRef(refNode.ID().text)
-
-    fun newModule(def: ModuleDefContext): DependenciesTxt.Module {
-        val name = def.ID().text
+    private fun newModule(def: ValueWithFlags): DependenciesTxt.Module {
+        val name = def.value.trim()
 
         val module = DependenciesTxt.Module(name)
         val kotlinFacetSettings = KotlinFacetSettings()
@@ -179,34 +204,30 @@ class DependenciesTxtBuilder {
         moduleRef.defined = true
         moduleRef.actual = module
 
-        def.attrs().accept { key, value ->
-            if (value == null) {
-                when (key) {
-                    "common" -> kotlinFacetSettings.compilerArguments = K2MetadataCompilerArguments()
-                    "jvm" -> kotlinFacetSettings.compilerArguments = K2JVMCompilerArguments()
-                    "js" -> kotlinFacetSettings.compilerArguments = K2JSCompilerArguments()
-                    else -> {
-                        val flagProperty = DependenciesTxt.Module.flags[key]
-                        if (flagProperty != null) flagProperty.set(module, true)
-                        else error("Unknown module flag `$key`")
-                    }
+        def.flags.forEach { flag ->
+            when (flag) {
+                "common" -> kotlinFacetSettings.compilerArguments = K2MetadataCompilerArguments()
+                "jvm" -> kotlinFacetSettings.compilerArguments = K2JVMCompilerArguments()
+                "js" -> kotlinFacetSettings.compilerArguments = K2JSCompilerArguments()
+                else -> {
+                    val flagProperty = DependenciesTxt.Module.flags[flag]
+                    if (flagProperty != null) flagProperty.set(module, true)
+                    else error("Unknown module flag `$flag`")
                 }
-            } else error("Unknown module property `$key`")
+            }
         }
 
         return module
     }
 
-    fun newDependency(def: DependencyDefContext): DependencyBuilder? {
-        val from = def.moduleRef(0)
-        val to = def.moduleRef(1)
-
-        if (to == null) {
+    private fun newDependency(from: String, to: String, flags: Set<String>): DependencyBuilder? {
+        if (to.isEmpty()) {
             // `x -> ` should just create undefined module `x`
             moduleRef(from)
 
-            check(def.attrs() == null) {
-                "Attributes are not allowed for `x -> ` like dependencies. Please use `x [attrs...]` syntax for module attributes."
+            check(flags.isEmpty()) {
+                "`name -> [flag1, flag2, ...]` - not allowed due to the ambiguity of belonging to modules/dependencies. " +
+                        "Please use `x [attrs...]` syntax for module attributes."
             }
 
             return null
@@ -215,18 +236,16 @@ class DependenciesTxtBuilder {
             var scope = JpsJavaDependencyScope.COMPILE
             var expectedBy = false
 
-            def.attrs()?.accept { key, value ->
-                if (value == null) {
-                    when (key) {
-                        "exported" -> exported = true
-                        "compile" -> scope = JpsJavaDependencyScope.COMPILE
-                        "test" -> scope = JpsJavaDependencyScope.TEST
-                        "runtime" -> scope = JpsJavaDependencyScope.RUNTIME
-                        "provided" -> scope = JpsJavaDependencyScope.PROVIDED
-                        "expectedBy" -> expectedBy = true
-                        else -> error("Unknown dependency flag `$key`")
-                    }
-                } else error("Unknown dependency property `$key`")
+            flags.forEach { flag ->
+                when (flag) {
+                    "exported" -> exported = true
+                    "compile" -> scope = JpsJavaDependencyScope.COMPILE
+                    "test" -> scope = JpsJavaDependencyScope.TEST
+                    "runtime" -> scope = JpsJavaDependencyScope.RUNTIME
+                    "provided" -> scope = JpsJavaDependencyScope.PROVIDED
+                    "expectedBy" -> expectedBy = true
+                    else -> error("Unknown dependency flag `$flag`")
+                }
             }
 
             return DependencyBuilder(
@@ -237,18 +256,6 @@ class DependenciesTxtBuilder {
                 exported = exported
             ).also {
                 dependencies.add(it)
-            }
-        }
-    }
-
-    private fun AttrsContext.accept(visit: (key: String, value: String?) -> Unit) {
-        attr().forEach {
-            val flagRef = it.attrFlagRef()
-            val keyValue = it.attrKeyValue()
-
-            when {
-                flagRef != null -> visit(flagRef.ID().text, null)
-                keyValue != null -> visit(keyValue.attrKeyRef().ID().text, keyValue.attrValueRef().ID().text)
             }
         }
     }

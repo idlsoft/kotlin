@@ -11,13 +11,14 @@ import java.io.File
  * Utility for generating common/platform module stub contents based on it's dependencies.
  */
 fun actualizeMppJpsIncTestCaseDirs(rootDir: String, dir: String) {
-    File("$rootDir/$dir").listFiles { it: File -> it.isDirectory }.forEach {
-        val dependenciesTxtFile = File(it, "dependencies.txt")
+    File("$rootDir/$dir").listFiles { it: File -> it.isDirectory }.forEach { dirFile ->
+        val dependenciesTxtFile = File(dirFile, "dependencies.txt")
         if (dependenciesTxtFile.exists()) {
-            val fileTitle = "$dir/${it.name}/dependencies.txt"
+            val fileTitle = "$dir/${dirFile.name}/dependencies.txt"
             val dependenciesTxt = DependenciesTxtBuilder().readFile(dependenciesTxtFile, fileTitle)
 
-            MppJpsIncTestsGenerator(dependenciesTxt) { File(dir, it.name) }.actualizeTestCasesDirs(File(it))
+            MppJpsIncTestsGenerator(dependenciesTxt) { File(dirFile, it.name) }
+                .actualizeTestCasesDirs(dirFile)
         }
     }
 
@@ -30,18 +31,20 @@ class MppJpsIncTestsGenerator(val txt: DependenciesTxt, val testCaseDirProvider:
     val testCases: List<TestCase>
 
     init {
-        testCases = mutableListOf<TestCase>().also { testCases ->
-            txt.modules.forEach {
-                if (it.edit)
-                    testCases.add(EditingTestCase(it, changeJavaClass = false))
+        val testCases = mutableListOf<TestCase>()
 
-                if (it.editJvm && it.isJvmModule)
-                    testCases.add(EditingTestCase(it, changeJavaClass = true))
+        txt.modules.forEach {
+            if (it.edit)
+                testCases.add(EditingTestCase(it, changeJavaClass = false))
 
-                if (it.editExpectActual && it.isCommonModule)
-                    testCases.add(EditingExpectActualTestCase(it))
-            }
+            if (it.editJvm && it.isJvmModule)
+                testCases.add(EditingTestCase(it, changeJavaClass = true))
+
+            if (it.editExpectActual && it.isCommonModule)
+                testCases.add(EditingExpectActualTestCase(it))
         }
+
+        this.testCases = testCases
     }
 
     fun actualizeTestCasesDirs(rootDir: File) {
@@ -51,7 +54,6 @@ class MppJpsIncTestsGenerator(val txt: DependenciesTxt, val testCaseDirProvider:
             check(requiredDirs.add(dir)) { "TestCase dir clash $dir" }
 
             if (!dir.exists()) {
-                check(dir.mkdir())
                 File(dir, "build.log").setFileContent("")
             }
         }
@@ -67,7 +69,16 @@ class MppJpsIncTestsGenerator(val txt: DependenciesTxt, val testCaseDirProvider:
      * Set required content for [this] [File].
      */
     fun File.setFileContent(content: String) {
-        check(!exists())
+        check(!exists()) {
+            "File `$this` already exists," +
+                    "\n\n============= contents ============\n" +
+                    readText() +
+                    "\n===================================\n" +
+                    "\n============ new content ==========\n" +
+                    content +
+                    "\n===================================\n"
+        }
+
         parentFile.mkdirs()
         writeText(content)
     }
@@ -85,6 +96,8 @@ class MppJpsIncTestsGenerator(val txt: DependenciesTxt, val testCaseDirProvider:
         override val name: String =
             if (changeJavaClass) "editing${module.capitalName}Java"
             else "editing${module.capitalName}Kotlin"
+
+        override val dir: File = testCaseDirProvider(this)
 
         override fun generate() {
             generateBaseContent()
@@ -160,6 +173,7 @@ class MppJpsIncTestsGenerator(val txt: DependenciesTxt, val testCaseDirProvider:
 
     inner class EditingExpectActualTestCase(val commonModule: DependenciesTxt.Module) : TestCase() {
         override val name: String = "editing${commonModule.capitalName}ExpectActual"
+        override val dir: File = testCaseDirProvider(this)
 
         override fun generate() {
             generateBaseContent()
@@ -228,7 +242,7 @@ class MppJpsIncTestsGenerator(val txt: DependenciesTxt, val testCaseDirProvider:
 
         abstract fun generate()
 
-        val dir: File = testCaseDirProvider(this)
+        abstract val dir: File
 
         private val modules = mutableMapOf<DependenciesTxt.Module, ModuleContentSettings>()
 
@@ -261,16 +275,17 @@ class MppJpsIncTestsGenerator(val txt: DependenciesTxt, val testCaseDirProvider:
 
         private fun generateModuleContents(module: DependenciesTxt.Module) {
             when {
-                module.isCommonModule -> generateCommonFile(module)
+                module.isCommonModule -> {
+                    // common module
+                    generateCommonFile(module)
+                }
                 module.expectedBy.isEmpty() -> {
                     // regular module
                     generatePlatformFile(module)
                 }
                 else -> {
                     // common module platform implementation
-                    module.expectedBy.forEach {
-                        generatePlatformFile(module)
-                    }
+                    generatePlatformFile(module)
                 }
             }
         }
@@ -418,5 +433,7 @@ class MppJpsIncTestsGenerator(val txt: DependenciesTxt, val testCaseDirProvider:
                 }
             }
         }
+
+        override fun toString() = name
     }
 }
