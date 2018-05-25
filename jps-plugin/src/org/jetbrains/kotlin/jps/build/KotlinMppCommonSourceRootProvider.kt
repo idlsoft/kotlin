@@ -11,8 +11,11 @@ import org.jetbrains.jps.builders.java.JavaModuleBuildTargetType
 import org.jetbrains.jps.builders.java.JavaSourceRootDescriptor
 import org.jetbrains.jps.builders.storage.BuildDataPaths
 import org.jetbrains.jps.incremental.ModuleBuildTarget
+import org.jetbrains.jps.model.java.JavaSourceRootProperties
 import org.jetbrains.jps.model.java.JavaSourceRootType
 import org.jetbrains.jps.model.module.JpsModule
+import org.jetbrains.jps.model.module.JpsModuleSourceRootType
+import org.jetbrains.kotlin.config.KotlinSourceRootType
 import org.jetbrains.kotlin.jps.model.expectedByModules
 import java.io.File
 
@@ -31,37 +34,47 @@ class KotlinMppCommonSourceRootProvider : AdditionalRootsProviderService<JavaSou
 
         val result = mutableListOf<JavaSourceRootDescriptor>()
 
-        module.expectedByModules.forEach { module ->
-            if (moduleBuildTarget.isTests) {
-                result.addSourceRoots(module, JavaSourceRootType.TEST_SOURCE, target)
-            } else {
-                result.addSourceRoots(module, JavaSourceRootType.SOURCE, target)
-            }
+        module.expectedByModules.forEach { commonModule ->
+            addSourceRoots(result, commonModule, target)
         }
 
         return result
     }
 
-    private fun MutableList<JavaSourceRootDescriptor>.addSourceRoots(
-        module: JpsModule,
-        sourceRootType: JavaSourceRootType,
+    private fun addSourceRoots(
+        result: MutableList<JavaSourceRootDescriptor>,
+        commonModule: JpsModule,
         target: ModuleBuildTarget
     ) {
-        module.getSourceRoots(sourceRootType).map {
-            add(
-                KotlinCommonModuleSourceRoot(
-                    module,
-                    it.file,
-                    target,
-                    it.properties.isForGeneratedSources,
-                    false,
-                    it.properties.packagePrefix,
-                    setOf()
+        val commonSourceRoots = commonModule.sourceRoots
+        for (commonSourceRoot in commonSourceRoots) {
+            val commonSourceRootType = commonSourceRoot.rootType
+            if (target.isTests == commonSourceRootType.isTestsRootType) {
+                val javaSourceRootProperties = commonSourceRoot.properties as? JavaSourceRootProperties
+
+                result.add(
+                    KotlinCommonModuleSourceRoot(
+                        commonModule,
+                        commonSourceRoot.file,
+                        target,
+                        javaSourceRootProperties?.isForGeneratedSources ?: false,
+                        false,
+                        javaSourceRootProperties?.packagePrefix ?: "",
+                        setOf()
+                    )
                 )
-            )
+            }
         }
     }
 }
+
+private val JpsModuleSourceRootType<*>.isTestsRootType
+    get() = when (this) {
+        is KotlinSourceRootType -> this == KotlinSourceRootType.TestSource
+        is JavaSourceRootType -> this == JavaSourceRootType.TEST_SOURCE // for compatibility
+        else -> null
+    }
+
 
 class KotlinCommonModuleSourceRoot(
     val commonModule: JpsModule,
