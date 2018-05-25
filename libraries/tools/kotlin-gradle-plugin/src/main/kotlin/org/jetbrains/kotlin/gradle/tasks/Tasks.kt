@@ -102,6 +102,7 @@ abstract class AbstractKotlinCompile<T : CommonCompilerArguments>() : AbstractKo
     @get:Classpath @get:InputFiles
     protected val additionalClasspath = arrayListOf<File>()
 
+    @get:CompileClasspath
     @get:Internal // classpath already participates in the checks
     protected val compileClasspath: Iterable<File>
         get() = (classpath + additionalClasspath)
